@@ -54,21 +54,6 @@
             display: none;
             animation: pop 0.5s ease-in-out;
         }
-        .confetti {
-            position: fixed;
-            width: 10px;
-            height: 10px;
-            background: gold;
-            animation: fall 2s linear infinite;
-        }
-        @keyframes fall {
-            0% { transform: translateY(-100vh) rotate(0deg); }
-            100% { transform: translateY(100vh) rotate(360deg); }
-        }
-        @keyframes pop {
-            0% { transform: scale(0.5); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
         canvas {
             position: absolute;
             top: 0;
@@ -97,7 +82,7 @@
         const spinSound = document.getElementById("spinSound");
         const winSound = document.getElementById("winSound");
 
-        // Données de la roue modifiées
+        // Données de la roue
         const wheelData = [
             "MINA", "MINA", "MINA", "MINA", 
             "MINA", "MINA", "MINA", "MINA", 
@@ -118,7 +103,7 @@
         function drawWheel() {
             ctx.clearRect(0, 0, 400, 400);
             const arc = (2 * Math.PI) / wheelData.length;
-            
+
             wheelData.forEach((item, i) => {
                 const angle = startAngle + i * arc;
                 ctx.beginPath();
@@ -127,7 +112,7 @@
                 ctx.arc(200, 200, 200, angle, angle + arc);
                 ctx.closePath();
                 ctx.fill();
-                
+
                 // Texte
                 ctx.save();
                 ctx.translate(200 + Math.cos(angle + arc / 2) * 140, 200 + Math.sin(angle + arc / 2) * 140);
@@ -147,68 +132,38 @@
             message.style.display = "none";
             spinSound.play();
 
-            const totalDuration = 17000; // 17 secondes en millisecondes
+            const totalDuration = 21000; // 21 secondes
             const startTime = performance.now();
-            
-            // Paramètres de l'animation
-            const initialVelocity = 0.3;
-            const finalPosition = Math.random() * (2 * Math.PI); // Position finale aléatoire précise
-            let currentVelocity = initialVelocity;
+
+            // Calculer la rotation finale
+            const totalRotation = 10 * 2 * Math.PI + Math.random() * (2 * Math.PI); // 10 tours complets + angle final
 
             function animateSpin(time) {
                 const elapsed = time - startTime;
-                const progress = elapsed / totalDuration;
+                const progress = Math.min(elapsed / totalDuration, 1);
 
-                if (elapsed < totalDuration) {
-                    // Fonction d'ease-out cubique pour un ralentissement plus naturel
-                    const easedProgress = 1 - Math.pow(1 - progress, 3);
-                    
-                    // Interpolation entre la vitesse initiale et zéro
-                    currentVelocity = initialVelocity * (1 - easedProgress);
-                    
-                    // Rotation continue
-                    startAngle += currentVelocity;
-                    
-                    drawWheel();
+                // Accélération rapide au début, décélération progressive (ease-out)
+                const easedProgress = progress < 0.5
+                    ? 4 * progress ** 3
+                    : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+                // Mise à jour de l'angle
+                startAngle = easedProgress * totalRotation;
+
+                drawWheel();
+
+                if (progress < 1) {
                     requestAnimationFrame(animateSpin);
                 } else {
-                    // Arrêt précis sur une position
-                    startAngle = finalPosition;
-                    
-                    // Déterminer précisément le gagnant
-                    const arc = (2 * Math.PI) / wheelData.length;
-                    const normalizedAngle = ((2 * Math.PI - (startAngle % (2 * Math.PI))) % (2 * Math.PI));
-                    const index = Math.floor(normalizedAngle / arc);
-                    
-                    const winner = wheelData[index];
-                    
-                    message.textContent = `🎉 Résultat : ${winner} 🎉`;
+                    // Message fixe pour le vainqueur
+                    message.textContent = "🎉 Bon, quelque soit le résultat, ça sera Mina la grande gagnante . 🎉";
                     message.style.display = "block";
                     winSound.play();
-                    createConfetti();
                     isSpinning = false;
                 }
             }
 
             requestAnimationFrame(animateSpin);
-        }
-
-        // Création des paillettes (confetti)
-        function createConfetti() {
-            for (let i = 0; i < 100; i++) {
-                const confetti = document.createElement("div");
-                confetti.classList.add("confetti");
-                confetti.style.left = Math.random() * window.innerWidth + "px";
-                confetti.style.backgroundColor = getRandomColor();
-                confetti.style.animationDuration = Math.random() * 2 + 3 + "s";
-                document.body.appendChild(confetti);
-                setTimeout(() => confetti.remove(), 5000);
-            }
-        }
-
-        function getRandomColor() {
-            const colors = ["#FFC107", "#FF5722", "#8BC34A", "#03A9F4", "#E91E63", "#9C27B0"];
-            return colors[Math.floor(Math.random() * colors.length)];
         }
 
         // Initialisation de la roue
